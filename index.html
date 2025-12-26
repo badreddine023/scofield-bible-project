@@ -1,0 +1,2113 @@
+<!-- index.html - Enhanced version -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connected Scofield Bible - Interactive 1917 Edition</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/scofield-bible-project/manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="Interactive 1917 Scofield Reference Bible with notes, cross-references, and thematic study tools">
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    
+    <!-- Vis.js for network visualizations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #c0392b;
+            --light-bg: #f8f9fa;
+            --dark-bg: #2c3e50;
+            --text-color: #333;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+        
+        /* Navigation */
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.4rem;
+        }
+        
+        .nav-link.active {
+            border-bottom: 3px solid var(--secondary-color);
+        }
+        
+        /* Main Layout */
+        .app-container {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        /* Mobile sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 56px;
+                left: 0;
+                height: calc(100vh - 56px);
+                z-index: 1000;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 56px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+        
+        /* Reader */
+        .reader-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .verse-card {
+            background: white;
+            border-left: 4px solid var(--secondary-color);
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .verse-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .verse-number {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        .verse-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 0.5rem;
+            font-family: 'Georgia', serif;
+        }
+        
+        .note-indicator {
+            color: var(--accent-color);
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 4px;
+        }
+        
+        .note-card {
+            background: #f8f9fa;
+            border-left: 3px solid var(--accent-color);
+            border-radius: 0 4px 4px 0;
+            margin: 1rem 0;
+            padding: 1rem;
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .note-type {
+            font-size: 0.8rem;
+            background: var(--accent-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        /* Themes */
+        .theme-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .theme-badge:hover {
+            background: var(--secondary-color);
+        }
+        
+        /* Network Visualization */
+        .network-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+        }
+        
+        /* Search Results */
+        .search-result {
+            border-left: 4px solid var(--secondary-color);
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .search-result:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        .loading-spinner.show {
+            display: block;
+        }
+        
+        /* Utility Classes */
+        .shadow-sm {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+        
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            .verse-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <button class="btn btn-outline-light me-2 d-lg-none" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-book me-2"></i>
+                Connected Scofield Bible
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-light" href="#" id="themeDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-palette"></i> Theme
+                    </a>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#" data-theme="light">Light</a>
+                        <a class="dropdown-item" href="#" data-theme="dark">Dark</a>
+                        <a class="dropdown-item" href="#" data-theme="sepia">Sepia</a>
+                    </div>
+                </div>
+                
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-light" href="#" id="toolsDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-tools"></i> Tools
+                    </a>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#" id="printBtn">
+                            <i class="bi bi-printer"></i> Print
+                        </a>
+                        <a class="dropdown-item" href="#" id="downloadBtn">
+                            <i class="bi bi-download"></i> Download Data
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#" id="pwaInstallBtn" style="display: none;">
+                            <i class="bi bi-phone"></i> Install App
+                        </a>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-light ms-2" id="offlineStatus">
+                    <i class="bi bi-wifi"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="p-3">
+                <!-- Search -->
+                <div class="mb-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search verses, notes...">
+                        <button class="btn btn-outline-primary" type="button" id="searchBtn">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="form-text mt-1">
+                        Search across KJV text and Scofield notes
+                    </div>
+                </div>
+                
+                <!-- Bible Navigation -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-book me-2"></i>Bible Navigation
+                    </h5>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" id="bookSelect">
+                                <option value="">Select Book</option>
+                                <!-- Books will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" id="chapterSelect" disabled>
+                                <option value="">Select Chapter</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" id="prevChapter">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" id="nextChapter">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-lightning me-2"></i>Quick Study
+                    </h5>
+                    
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action" data-theme="dispensations">
+                            <i class="bi bi-diagram-3 me-2"></i>Dispensations
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-theme="covenants">
+                            <i class="bi bi-file-text me-2"></i>Covenants
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-theme="prophecy">
+                            <i class="bi bi-eye me-2"></i>Prophecy
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" id="crossRefView">
+                            <i class="bi bi-link-45deg me-2"></i>Cross References
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Reading Plans -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-calendar-check me-2"></i>Reading Plans
+                    </h5>
+                    
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action" data-plan="scofield-notes">
+                            Scofield Notes (30 days)
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-plan="new-testament">
+                            New Testament with Notes
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-plan="prophecy">
+                            Prophecy & Fulfillment
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-bar-chart me-2"></i>Statistics
+                        </h6>
+                        <div class="small" id="statsContent">
+                            Loading statistics...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- View Tabs -->
+            <ul class="nav nav-tabs mb-4" id="viewTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#readerView">
+                        <i class="bi bi-book"></i> Reader
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#notesView">
+                        <i class="bi bi-sticky"></i> Notes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#themesView">
+                        <i class="bi bi-diagram-3"></i> Themes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#searchView">
+                        <i class="bi bi-search"></i> Search
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content" id="viewContent">
+                <!-- Reader View -->
+                <div class="tab-pane fade show active" id="readerView">
+                    <div class="reader-container">
+                        <!-- Chapter Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h2 id="chapterTitle">Select a Book and Chapter</h2>
+                                <div class="text-muted" id="chapterInfo">
+                                    Select from the sidebar to begin reading
+                                </div>
+                            </div>
+                            <div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary" id="toggleNotes">
+                                        <i class="bi bi-eye"></i> Show Notes
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" id="toggleReferences">
+                                        <i class="bi bi-link-45deg"></i> References
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Verses Container -->
+                        <div id="versesContainer">
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-book" style="font-size: 3rem; opacity: 0.2;"></i>
+                                <h4 class="mt-3">No Chapter Selected</h4>
+                                <p>Choose a book and chapter from the sidebar to begin reading.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Cross References Panel -->
+                        <div class="card mt-4" id="referencesPanel" style="display: none;">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-link-45deg me-2"></i>Cross References
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="crossReferences">
+                                    <p class="text-muted">Select a verse to see cross-references.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notes View -->
+                <div class="tab-pane fade" id="notesView">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <h3 class="mb-4">
+                                <i class="bi bi-sticky me-2"></i>Scofield Study Notes
+                            </h3>
+                            
+                            <div class="mb-4">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="notesSearch" placeholder="Search notes...">
+                                    <button class="btn btn-primary" type="button" id="searchNotesBtn">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="notesContainer">
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-sticky" style="font-size: 3rem; opacity: 0.2;"></i>
+                                    <h4 class="mt-3">No Notes Found</h4>
+                                    <p>Search for specific notes or select a chapter to view notes.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Note Categories</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="noteCategories">
+                                        <!-- Categories will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Recent Notes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentNotes">
+                                        <!-- Recent notes will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Themes View -->
+                <div class="tab-pane fade" id="themesView">
+                    <h3 class="mb-4">
+                        <i class="bi bi-diagram-3 me-2"></i>Thematic Studies
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Themes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="themeFilter" placeholder="Filter themes...">
+                                    </div>
+                                    <div id="themeList" style="max-height: 400px; overflow-y: auto;">
+                                        <!-- Themes will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0" id="selectedThemeTitle">Select a Theme</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="themeContent">
+                                        <div class="text-center text-muted py-5">
+                                            <i class="bi bi-diagram-3" style="font-size: 3rem; opacity: 0.2;"></i>
+                                            <h4 class="mt-3">No Theme Selected</h4>
+                                            <p>Select a theme from the list to explore related verses and notes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Theme Network</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="network-container" id="themeNetwork"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search View -->
+                <div class="tab-pane fade" id="searchView">
+                    <h3 class="mb-4">
+                        <i class="bi bi-search me-2"></i>Advanced Search
+                    </h3>
+                    
+                    <div class="row">
+                        <div class="col-lg-3">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Search Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Search Type</label>
+                                        <select class="form-select" id="searchType">
+                                            <option value="all">All Content</option>
+                                            <option value="verses">Verses Only</option>
+                                            <option value="notes">Notes Only</option>
+                                            <option value="themes">Themes Only</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Book Filter</label>
+                                        <select class="form-select" id="searchBook">
+                                            <option value="">All Books</option>
+                                            <!-- Books will be populated by JavaScript -->
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Theme Filter</label>
+                                        <select class="form-select" id="searchTheme">
+                                            <option value="">All Themes</option>
+                                            <!-- Themes will be populated by JavaScript -->
+                                        </select>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary w-100" id="advancedSearchBtn">
+                                        <i class="bi bi-search me-2"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-9">
+                            <div class="mb-4">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="advancedSearchInput" 
+                                           placeholder="Enter search terms...">
+                                    <button class="btn btn-primary" type="button" id="advancedSearchBtn2">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                                <div class="form-text mt-2">
+                                    Tip: Use quotes for exact phrases, AND/OR for boolean searches
+                                </div>
+                            </div>
+                            
+                            <div id="searchResultsContainer">
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                                    <h4 class="mt-3">No Search Results</h4>
+                                    <p>Enter a search query to find verses, notes, and themes.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <nav id="searchPagination"></nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Install App Modal -->
+    <div class="modal fade" id="installModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Install Scofield Bible App</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Install the Connected Scofield Bible app for offline access and better experience.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        The app will work offline and can be accessed like a native application.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Later</button>
+                    <button type="button" class="btn btn-primary" id="confirmInstall">Install</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <script>
+        // Constants and Configuration
+        const BIBLE_BOOKS = {
+            'GEN': { name: 'Genesis', chapters: 50, color: '#3498db' },
+            'EXO': { name: 'Exodus', chapters: 40, color: '#2ecc71' },
+            'LEV': { name: 'Leviticus', chapters: 27, color: '#e74c3c' },
+            'NUM': { name: 'Numbers', chapters: 36, color: '#9b59b6' },
+            'DEU': { name: 'Deuteronomy', chapters: 34, color: '#1abc9c' },
+            'JOS': { name: 'Joshua', chapters: 24, color: '#f39c12' },
+            'JDG': { name: 'Judges', chapters: 21, color: '#d35400' },
+            'RUT': { name: 'Ruth', chapters: 4, color: '#34495e' },
+            '1SA': { name: '1 Samuel', chapters: 31, color: '#16a085' },
+            '2SA': { name: '2 Samuel', chapters: 24, color: '#27ae60' },
+            '1KI': { name: '1 Kings', chapters: 22, color: '#2980b9' },
+            '2KI': { name: '2 Kings', chapters: 25, color: '#8e44ad' },
+            '1CH': { name: '1 Chronicles', chapters: 29, color: '#2c3e50' },
+            '2CH': { name: '2 Chronicles', chapters: 36, color: '#f1c40f' },
+            'EZR': { name: 'Ezra', chapters: 10, color: '#e67e22' },
+            'NEH': { name: 'Nehemiah', chapters: 13, color: '#e74c3c' },
+            'EST': { name: 'Esther', chapters: 10, color: '#9b59b6' },
+            'JOB': { name: 'Job', chapters: 42, color: '#1abc9c' },
+            'PSA': { name: 'Psalms', chapters: 150, color: '#3498db' },
+            'PRO': { name: 'Proverbs', chapters: 31, color: '#2ecc71' },
+            'ECC': { name: 'Ecclesiastes', chapters: 12, color: '#f39c12' },
+            'SON': { name: 'Song of Solomon', chapters: 8, color: '#e74c3c' },
+            'ISA': { name: 'Isaiah', chapters: 66, color: '#9b59b6' },
+            'JER': { name: 'Jeremiah', chapters: 52, color: '#34495e' },
+            'LAM': { name: 'Lamentations', chapters: 5, color: '#16a085' },
+            'EZE': { name: 'Ezekiel', chapters: 48, color: '#27ae60' },
+            'DAN': { name: 'Daniel', chapters: 12, color: '#2980b9' },
+            'HOS': { name: 'Hosea', chapters: 14, color: '#8e44ad' },
+            'JOE': { name: 'Joel', chapters: 3, color: '#2c3e50' },
+            'AMO': { name: 'Amos', chapters: 9, color: '#f1c40f' },
+            'OBA': { name: 'Obadiah', chapters: 1, color: '#e67e22' },
+            'JON': { name: 'Jonah', chapters: 4, color: '#e74c3c' },
+            'MIC': { name: 'Micah', chapters: 7, color: '#9b59b6' },
+            'NAH': { name: 'Nahum', chapters: 3, color: '#1abc9c' },
+            'HAB': { name: 'Habakkuk', chapters: 3, color: '#3498db' },
+            'ZEP': { name: 'Zephaniah', chapters: 3, color: '#2ecc71' },
+            'HAG': { name: 'Haggai', chapters: 2, color: '#f39c12' },
+            'ZEC': { name: 'Zechariah', chapters: 14, color: '#e74c3c' },
+            'MAL': { name: 'Malachi', chapters: 4, color: '#9b59b6' },
+            'MAT': { name: 'Matthew', chapters: 28, color: '#34495e' },
+            'MAR': { name: 'Mark', chapters: 16, color: '#16a085' },
+            'LUK': { name: 'Luke', chapters: 24, color: '#27ae60' },
+            'JOH': { name: 'John', chapters: 21, color: '#2980b9' },
+            'ACT': { name: 'Acts', chapters: 28, color: '#8e44ad' },
+            'ROM': { name: 'Romans', chapters: 16, color: '#2c3e50' },
+            '1CO': { name: '1 Corinthians', chapters: 16, color: '#f1c40f' },
+            '2CO': { name: '2 Corinthians', chapters: 13, color: '#e67e22' },
+            'GAL': { name: 'Galatians', chapters: 6, color: '#e74c3c' },
+            'EPH': { name: 'Ephesians', chapters: 6, color: '#9b59b6' },
+            'PHI': { name: 'Philippians', chapters: 4, color: '#1abc9c' },
+            'COL': { name: 'Colossians', chapters: 4, color: '#3498db' },
+            '1TH': { name: '1 Thessalonians', chapters: 5, color: '#2ecc71' },
+            '2TH': { name: '2 Thessalonians', chapters: 3, color: '#f39c12' },
+            '1TI': { name: '1 Timothy', chapters: 6, color: '#e74c3c' },
+            '2TI': { name: '2 Timothy', chapters: 4, color: '#9b59b6' },
+            'TIT': { name: 'Titus', chapters: 3, color: '#34495e' },
+            'PHM': { name: 'Philemon', chapters: 1, color: '#16a085' },
+            'HEB': { name: 'Hebrews', chapters: 13, color: '#27ae60' },
+            'JAM': { name: 'James', chapters: 5, color: '#2980b9' },
+            '1PE': { name: '1 Peter', chapters: 5, color: '#8e44ad' },
+            '2PE': { name: '2 Peter', chapters: 3, color: '#2c3e50' },
+            '1JO': { name: '1 John', chapters: 5, color: '#f1c40f' },
+            '2JO': { name: '2 John', chapters: 1, color: '#e67e22' },
+            '3JO': { name: '3 John', chapters: 1, color: '#e74c3c' },
+            'JUD': { name: 'Jude', chapters: 1, color: '#9b59b6' },
+            'REV': { name: 'Revelation', chapters: 22, color: '#1abc9c' }
+        };
+
+        const SCOFIELD_THEMES = [
+            { id: 'dispensations', name: 'Dispensations', color: '#3498db', count: 145 },
+            { id: 'covenants', name: 'Covenants', color: '#2ecc71', count: 89 },
+            { id: 'grace', name: 'Grace', color: '#e74c3c', count: 203 },
+            { id: 'law', name: 'Law', color: '#9b59b6', count: 156 },
+            { id: 'prophecy', name: 'Prophecy', color: '#f39c12', count: 312 },
+            { id: 'kingdom', name: 'Kingdom of God', color: '#1abc9c', count: 178 },
+            { id: 'church', name: 'Church Age', color: '#34495e', count: 134 },
+            { id: 'Israel', name: 'Israel', color: '#d35400', count: 267 },
+            { id: 'salvation', name: 'Salvation', color: '#27ae60', count: 189 },
+            { id: 'atonement', name: 'Atonement', color: '#2980b9', count: 78 },
+            { id: 'justification', name: 'Justification', color: '#8e44ad', count: 92 },
+            { id: 'eschatology', name: 'Eschatology', color: '#16a085', count: 145 },
+            { id: 'second-coming', name: 'Second Coming', color: '#c0392b', count: 89 }
+        ];
+
+        const NOTE_CATEGORIES = [
+            'Doctrinal', 'Expository', 'Historical', 'Practical', 
+            'Prophetic', 'Typological', 'Devotional', 'Critical'
+        ];
+
+        // Main Application Class
+        class ScofieldBibleApp {
+            constructor() {
+                this.currentBook = null;
+                this.currentChapter = null;
+                this.currentView = 'reader';
+                this.data = this.loadLocalData();
+                this.deferredPrompt = null;
+                this.init();
+            }
+
+            async init() {
+                // Initialize components
+                this.initBooksDropdown();
+                this.initThemes();
+                this.initEventListeners();
+                this.initPWA();
+                this.updateStats();
+                
+                // Load initial data
+                await this.loadSampleData();
+                
+                // Check for updates
+                this.checkForUpdates();
+                
+                // Show welcome message for first-time users
+                if (!localStorage.getItem('scofield_welcome_shown')) {
+                    this.showWelcomeMessage();
+                    localStorage.setItem('scofield_welcome_shown', 'true');
+                }
+            }
+
+            initBooksDropdown() {
+                const bookSelect = document.getElementById('bookSelect');
+                const searchBook = document.getElementById('searchBook');
+                
+                for (const [abbrev, info] of Object.entries(BIBLE_BOOKS)) {
+                    const option = document.createElement('option');
+                    option.value = abbrev;
+                    option.textContent = info.name;
+                    
+                    const option2 = option.cloneNode(true);
+                    
+                    bookSelect.appendChild(option);
+                    searchBook.appendChild(option2);
+                }
+                
+                bookSelect.addEventListener('change', (e) => {
+                    const book = e.target.value;
+                    if (book) {
+                        this.onBookSelect(book);
+                    }
+                });
+            }
+
+            initThemes() {
+                const themeList = document.getElementById('themeList');
+                const searchTheme = document.getElementById('searchTheme');
+                
+                SCOFIELD_THEMES.forEach(theme => {
+                    // Theme list item
+                    const themeItem = document.createElement('div');
+                    themeItem.className = 'd-flex justify-content-between align-items-center p-2 border-bottom cursor-pointer';
+                    themeItem.style.borderLeft = `3px solid ${theme.color}`;
+                    themeItem.innerHTML = `
+                        <div>
+                            <strong>${theme.name}</strong>
+                            <div class="small text-muted">${theme.count} references</div>
+                        </div>
+                        <i class="bi bi-chevron-right"></i>
+                    `;
+                    themeItem.addEventListener('click', () => this.showTheme(theme.id));
+                    themeList.appendChild(themeItem);
+                    
+                    // Search dropdown option
+                    const option = document.createElement('option');
+                    option.value = theme.id;
+                    option.textContent = theme.name;
+                    searchTheme.appendChild(option);
+                });
+            }
+
+            initEventListeners() {
+                // Sidebar toggle
+                document.getElementById('sidebarToggle').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('show');
+                    document.getElementById('sidebarOverlay').classList.toggle('show');
+                });
+                
+                document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.remove('show');
+                    document.getElementById('sidebarOverlay').classList.remove('show');
+                });
+                
+                // Chapter navigation
+                document.getElementById('prevChapter').addEventListener('click', () => this.navigateChapter(-1));
+                document.getElementById('nextChapter').addEventListener('click', () => this.navigateChapter(1));
+                
+                // Search
+                document.getElementById('searchBtn').addEventListener('click', () => this.performSearch());
+                document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.performSearch();
+                });
+                
+                // Theme switching
+                document.querySelectorAll('[data-theme]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const theme = e.target.dataset.theme;
+                        this.switchTheme(theme);
+                    });
+                });
+                
+                // Toggle notes/references
+                document.getElementById('toggleNotes').addEventListener('click', () => this.toggleNotes());
+                document.getElementById('toggleReferences').addEventListener('click', () => this.toggleReferences());
+                
+                // Install app
+                document.getElementById('pwaInstallBtn')?.addEventListener('click', () => this.showInstallPrompt());
+                document.getElementById('confirmInstall')?.addEventListener('click', () => this.installApp());
+                
+                // Print
+                document.getElementById('printBtn').addEventListener('click', () => window.print());
+                
+                // Theme mode switching
+                document.querySelectorAll('[data-theme]').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const theme = e.target.dataset.theme;
+                        this.setColorTheme(theme);
+                    });
+                });
+                
+                // Offline status
+                window.addEventListener('online', () => this.updateOfflineStatus());
+                window.addEventListener('offline', () => this.updateOfflineStatus());
+                
+                // Tab switching
+                document.querySelectorAll('#viewTabs .nav-link').forEach(tab => {
+                    tab.addEventListener('shown.bs.tab', (e) => {
+                        this.currentView = e.target.getAttribute('href').replace('#', '');
+                        this.onViewChange();
+                    });
+                });
+            }
+
+            initPWA() {
+                // Check if PWA is installable
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    const installBtn = document.getElementById('pwaInstallBtn');
+                    if (installBtn) {
+                        installBtn.style.display = 'block';
+                        installBtn.addEventListener('click', () => this.showInstallPrompt());
+                    }
+                });
+                
+                // Check if app is already installed
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    console.log('Running in standalone mode');
+                }
+                
+                // Register service worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/scofield-bible-project/sw.js')
+                        .then(registration => {
+                            console.log('Service Worker registered with scope:', registration.scope);
+                        })
+                        .catch(error => {
+                            console.error('Service Worker registration failed:', error);
+                        });
+                }
+            }
+
+            async loadSampleData() {
+                // Load sample data (in production, this would load from JSON files)
+                try {
+                    // Try to load from local storage first
+                    let data = localStorage.getItem('scofield_data');
+                    if (data) {
+                        this.data = JSON.parse(data);
+                        return;
+                    }
+                    
+                    // Load sample data
+                    const response = await fetch('/scofield-bible-project/data/sample.json');
+                    if (response.ok) {
+                        this.data = await response.json();
+                        this.saveLocalData();
+                    } else {
+                        // Create sample data if file doesn't exist
+                        this.createSampleData();
+                    }
+                } catch (error) {
+                    console.log('Loading sample data:', error);
+                    this.createSampleData();
+                }
+            }
+
+            createSampleData() {
+                // Create comprehensive sample data
+                this.data = {
+                    version: "1917 Scofield Reference Bible",
+                    lastUpdated: new Date().toISOString(),
+                    verses: this.createSampleVerses(),
+                    notes: this.createSampleNotes(),
+                    crossReferences: this.createSampleCrossReferences(),
+                    readingPlans: this.createSampleReadingPlans(),
+                    statistics: {
+                        totalVerses: 31102,
+                        totalNotes: 4567,
+                        totalCrossReferences: 12890,
+                        totalThemes: 42
+                    }
+                };
+                
+                this.saveLocalData();
+            }
+
+            createSampleVerses() {
+                // Sample verses for demonstration
+                return {
+                    "GEN.1.1": {
+                        book: "GEN",
+                        chapter: 1,
+                        verse: 1,
+                        text: "In the beginning God created the heaven and the earth.",
+                        noteIds: ["N001"],
+                        keywords: ["creation", "beginning", "God"]
+                    },
+                    "GEN.1.2": {
+                        book: "GEN",
+                        chapter: 1,
+                        verse: 2,
+                        text: "And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
+                        noteIds: ["N002"],
+                        keywords: ["earth", "Spirit", "creation"]
+                    },
+                    "JOH.1.1": {
+                        book: "JOH",
+                        chapter: 1,
+                        verse: 1,
+                        text: "In the beginning was the Word, and the Word was with God, and the Word was God.",
+                        noteIds: ["N101"],
+                        keywords: ["Word", "beginning", "God"]
+                    },
+                    "ROM.3.23": {
+                        book: "ROM",
+                        chapter: 3,
+                        verse: 23,
+                        text: "For all have sinned, and come short of the glory of God;",
+                        noteIds: ["N201"],
+                        keywords: ["sin", "glory", "God"]
+                    },
+                    "ROM.6.23": {
+                        book: "ROM",
+                        chapter: 6,
+                        verse: 23,
+                        text: "For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord.",
+                        noteIds: ["N202"],
+                        keywords: ["sin", "death", "eternal life", "gift"]
+                    }
+                };
+            }
+
+            createSampleNotes() {
+                return {
+                    "N001": {
+                        id: "N001",
+                        text: "The first creative act refers to the dateless past, and gives scope for all the geologic ages. (See Scofield 'Genesis 1:1')",
+                        linkedVerses: ["GEN.1.1"],
+                        category: "Doctrinal",
+                        type: "explanatory",
+                        themes: ["creation", "dispensations"],
+                        crossReferences: ["JOH.1.1", "HEB.11.3"]
+                    },
+                    "N002": {
+                        id: "N002",
+                        text: "Sin originated with Satan (Isaiah 14:12-14), entered the world through Adam (Romans 5:12), and was judged at the cross.",
+                        linkedVerses: ["ROM.3.23"],
+                        category: "Doctrinal",
+                        type: "explanatory",
+                        themes: ["sin", "salvation"],
+                        crossReferences: ["GEN.3.1-6", "1JO.3.8"]
+                    },
+                    "N101": {
+                        id: "N101",
+                        text: "The eternal Word in three respects: 1. His pre-existence, 2. His distinct personality, 3. His deity.",
+                        linkedVerses: ["JOH.1.1"],
+                        category: "Doctrinal",
+                        type: "expository",
+                        themes: ["deity of Christ", "trinity"],
+                        crossReferences: ["COL.1.17", "REV.19.13"]
+                    },
+                    "N202": {
+                        id: "N202",
+                        text: "The two ways: 1. The way of sin and death, 2. The way of grace and life.",
+                        linkedVerses: ["ROM.6.23"],
+                        category: "Practical",
+                        type: "devotional",
+                        themes: ["sin", "grace", "salvation"],
+                        crossReferences: ["EPH.2.8-9", "TIT.3.5"]
+                    }
+                };
+            }
+
+            createSampleCrossReferences() {
+                return [
+                    {
+                        source: "GEN.1.1",
+                        target: "JOH.1.1",
+                        type: "parallel",
+                        description: "Parallel beginnings"
+                    },
+                    {
+                        source: "N001",
+                        target: "JOH.1.1",
+                        type: "explanatory",
+                        description: "Creation references"
+                    },
+                    {
+                        source: "ROM.3.23",
+                        target: "GEN.3.6",
+                        type: "thematic",
+                        description: "Original sin"
+                    }
+                ];
+            }
+
+            createSampleReadingPlans() {
+                return {
+                    "scofield-notes": {
+                        id: "scofield-notes",
+                        name: "Scofield Notes Survey",
+                        description: "30-day survey of key Scofield notes",
+                        days: [
+                            ["GEN.1.1", "GEN.3.15", "GEN.12.1-3"],
+                            ["EXO.12.1-14", "LEV.16.1-34"],
+                            ["PSA.2.1-12", "PSA.22.1-31"]
+                        ],
+                        theme: "dispensations"
+                    }
+                };
+            }
+
+            onBookSelect(bookAbbrev) {
+                this.currentBook = bookAbbrev;
+                const chapterSelect = document.getElementById('chapterSelect');
+                
+                // Enable and populate chapter select
+                chapterSelect.disabled = false;
+                chapterSelect.innerHTML = '<option value="">Select Chapter</option>';
+                
+                const totalChapters = BIBLE_BOOKS[bookAbbrev].chapters;
+                for (let i = 1; i <= totalChapters; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Chapter ${i}`;
+                    chapterSelect.appendChild(option);
+                }
+                
+                chapterSelect.addEventListener('change', (e) => {
+                    const chapter = parseInt(e.target.value);
+                    if (chapter) {
+                        this.loadChapter(bookAbbrev, chapter);
+                    }
+                });
+            }
+
+            async loadChapter(book, chapter) {
+                this.showLoading(true);
+                this.currentBook = book;
+                this.currentChapter = chapter;
+                
+                try {
+                    // Update UI
+                    document.getElementById('chapterTitle').textContent = 
+                        `${BIBLE_BOOKS[book].name} ${chapter}`;
+                    
+                    document.getElementById('chapterInfo').textContent = 
+                        `Chapter ${chapter} of ${BIBLE_BOOKS[book].name}`;
+                    
+                    // Generate sample verses for this chapter
+                    const verses = this.generateChapterVerses(book, chapter);
+                    
+                    // Render verses
+                    this.renderVerses(verses);
+                    
+                    // Update URL (for sharing/deep linking)
+                    history.pushState({}, '', `?book=${book}&chapter=${chapter}`);
+                    
+                    // Save to recent readings
+                    this.saveRecentReading(book, chapter);
+                    
+                } catch (error) {
+                    console.error('Error loading chapter:', error);
+                    this.showError('Failed to load chapter');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            generateChapterVerses(book, chapter) {
+                // Generate sample verses for the chapter
+                // In a real implementation, this would load from actual data
+                const verses = [];
+                
+                // Determine how many verses to show based on the book
+                let verseCount = 20; // Default
+                if (book === 'PSA') verseCount = 10; // Psalms have fewer verses per "chapter"
+                if (chapter === 1) verseCount = 31; // Genesis 1 has 31 verses
+                
+                for (let i = 1; i <= verseCount; i++) {
+                    const verseId = `${book}.${chapter}.${i}`;
+                    const verseData = this.data.verses[verseId];
+                    
+                    if (verseData) {
+                        verses.push(verseData);
+                    } else {
+                        // Create a placeholder verse
+                        verses.push({
+                            book,
+                            chapter,
+                            verse: i,
+                            text: `This is verse ${i} of ${BIBLE_BOOKS[book].name} chapter ${chapter}.`,
+                            noteIds: i % 5 === 0 ? [`N${book}${chapter}${i}`] : [], // Every 5th verse has a note
+                            keywords: []
+                        });
+                    }
+                }
+                
+                return verses;
+            }
+
+            renderVerses(verses) {
+                const container = document.getElementById('versesContainer');
+                let html = '';
+                
+                verses.forEach(verse => {
+                    const verseData = this.data.verses[verse.verseId] || verse;
+                    const notes = verseData.noteIds ? 
+                        verseData.noteIds.map(id => this.data.notes[id]).filter(n => n) : [];
+                    
+                    html += `
+                        <div class="verse-card p-4 mb-3" id="verse-${verse.verseId}" data-verse-id="${verse.verseId}">
+                            <div class="d-flex align-items-start mb-2">
+                                <span class="verse-number" onclick="app.selectVerse('${verse.verseId}')">
+                                    ${verse.verse}
+                                </span>
+                                <div class="flex-grow-1">
+                                    <div class="verse-text">
+                                        ${verse.text}
+                                        ${notes.map((note, idx) => 
+                                            `<sup class="note-indicator" onclick="app.showNote('${note.id}')">[${idx + 1}]</sup>`
+                                        ).join('')}
+                                    </div>
+                                    
+                                    ${notes.length > 0 ? `
+                                        <div class="notes-container mt-3">
+                                            ${notes.map((note, idx) => `
+                                                <div class="note-card">
+                                                    <div class="note-header">
+                                                        <div>
+                                                            <strong>Note ${idx + 1}</strong>
+                                                            <span class="badge bg-secondary ms-2">${note.category}</span>
+                                                        </div>
+                                                        <span class="note-type">${note.type}</span>
+                                                    </div>
+                                                    <div class="note-text">${note.text}</div>
+                                                    ${note.themes ? `
+                                                        <div class="mt-2">
+                                                            ${note.themes.map(theme => 
+                                                                `<span class="theme-badge">${theme}</span>`
+                                                            ).join('')}
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+                // Scroll to top
+                container.scrollTop = 0;
+            }
+
+            selectVerse(verseId) {
+                // Highlight selected verse
+                document.querySelectorAll('.verse-card').forEach(card => {
+                    card.style.backgroundColor = '';
+                });
+                
+                const selectedVerse = document.getElementById(`verse-${verseId}`);
+                if (selectedVerse) {
+                    selectedVerse.style.backgroundColor = '#f0f8ff';
+                    
+                    // Show cross references
+                    this.showCrossReferences(verseId);
+                }
+            }
+
+            showCrossReferences(verseId) {
+                const container = document.getElementById('crossReferences');
+                
+                // Get cross references for this verse
+                const refs = this.data.crossReferences.filter(ref => 
+                    ref.source === verseId || ref.target === verseId
+                );
+                
+                if (refs.length > 0) {
+                    let html = '<div class="row g-2">';
+                    
+                    refs.forEach(ref => {
+                        const targetVerse = ref.target.includes('.') ? ref.target : '';
+                        const sourceVerse = ref.source.includes('.') ? ref.source : '';
+                        const displayVerse = targetVerse || sourceVerse;
+                        
+                        html += `
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>${displayVerse}</strong>
+                                            <span class="badge bg-info">${ref.type}</span>
+                                        </div>
+                                        <div class="small text-muted mt-1">${ref.description}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p class="text-muted">No cross-references found for this verse.</p>';
+                }
+                
+                // Show references panel
+                document.getElementById('referencesPanel').style.display = 'block';
+            }
+
+            toggleNotes() {
+                const notes = document.querySelectorAll('.notes-container');
+                const isVisible = notes[0]?.style.display !== 'none';
+                
+                notes.forEach(note => {
+                    note.style.display = isVisible ? 'none' : 'block';
+                });
+                
+                document.getElementById('toggleNotes').innerHTML = isVisible ? 
+                    '<i class="bi bi-eye"></i> Show Notes' : 
+                    '<i class="bi bi-eye-slash"></i> Hide Notes';
+            }
+
+            toggleReferences() {
+                const panel = document.getElementById('referencesPanel');
+                const isVisible = panel.style.display !== 'none';
+                
+                panel.style.display = isVisible ? 'none' : 'block';
+                
+                document.getElementById('toggleReferences').innerHTML = isVisible ? 
+                    '<i class="bi bi-link-45deg"></i> References' : 
+                    '<i class="bi bi-link-45deg"></i> Hide References';
+            }
+
+            showTheme(themeId) {
+                const theme = SCOFIELD_THEMES.find(t => t.id === themeId);
+                if (!theme) return;
+                
+                // Update UI
+                document.getElementById('selectedThemeTitle').textContent = theme.name;
+                
+                // Show theme in themes view
+                const bsTab = new bootstrap.Tab(document.querySelector('#viewTabs .nav-link[href="#themesView"]'));
+                bsTab.show();
+                
+                // Render theme content
+                this.renderThemeContent(theme);
+            }
+
+            renderThemeContent(theme) {
+                const container = document.getElementById('themeContent');
+                
+                // Find related verses and notes
+                const relatedVerses = Object.values(this.data.verses).filter(v => 
+                    v.keywords?.includes(theme.name.toLowerCase())
+                ).slice(0, 10);
+                
+                const relatedNotes = Object.values(this.data.notes).filter(n =>
+                    n.themes?.includes(theme.name.toLowerCase())
+                ).slice(0, 10);
+                
+                let html = `
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="me-3" style="width: 20px; height: 20px; background: ${theme.color};"></div>
+                            <h4 class="mb-0">${theme.name}</h4>
+                        </div>
+                        <p>Study theme with ${theme.count} references in the Scofield notes.</p>
+                    </div>
+                `;
+                
+                if (relatedVerses.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <h5>Key Verses</h5>
+                            <div class="list-group">
+                                ${relatedVerses.map(verse => `
+                                    <a href="#" class="list-group-item list-group-item-action" 
+                                       onclick="app.loadChapter('${verse.book}', ${verse.chapter}); return false;">
+                                        <strong>${verse.book} ${verse.chapter}:${verse.verse}</strong>
+                                        <div class="small text-muted">${verse.text.substring(0, 100)}...</div>
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (relatedNotes.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <h5>Related Notes</h5>
+                            <div class="row g-3">
+                                ${relatedNotes.map(note => `
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="badge bg-secondary">${note.category}</span>
+                                                    <small class="text-muted">${note.type}</small>
+                                                </div>
+                                                <p class="card-text">${note.text.substring(0, 150)}...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                
+                // Update network visualization
+                this.updateThemeNetwork(theme);
+            }
+
+            updateThemeNetwork(theme) {
+                // Create a network visualization of theme relationships
+                const container = document.getElementById('themeNetwork');
+                
+                // Sample network data
+                const nodes = [
+                    { id: theme.id, label: theme.name, color: theme.color, size: 30 },
+                    { id: 'dispensations', label: 'Dispensations', color: '#3498db', size: 20 },
+                    { id: 'grace', label: 'Grace', color: '#e74c3c', size: 25 },
+                    { id: 'salvation', label: 'Salvation', color: '#27ae60', size: 20 },
+                    { id: 'prophecy', label: 'Prophecy', color: '#f39c12', size: 22 }
+                ];
+                
+                const edges = [
+                    { from: theme.id, to: 'dispensations', value: 5 },
+                    { from: theme.id, to: 'grace', value: 3 },
+                    { from: theme.id, to: 'salvation', value: 4 },
+                    { from: theme.id, to: 'prophecy', value: 2 }
+                ];
+                
+                const data = { nodes, edges };
+                const options = {
+                    nodes: {
+                        shape: 'dot',
+                        font: { size: 14 },
+                        borderWidth: 2
+                    },
+                    edges: {
+                        width: 2,
+                        smooth: true
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: {
+                            iterations: 100
+                        }
+                    },
+                    interaction: {
+                        hover: true
+                    }
+                };
+                
+                new vis.Network(container, data, options);
+            }
+
+            async performSearch() {
+                const query = document.getElementById('searchInput').value.trim();
+                if (!query) return;
+                
+                this.showLoading(true);
+                
+                try {
+                    // Switch to search view
+                    const bsTab = new bootstrap.Tab(document.querySelector('#viewTabs .nav-link[href="#searchView"]'));
+                    bsTab.show();
+                    
+                    // Set search input
+                    document.getElementById('advancedSearchInput').value = query;
+                    
+                    // Perform search
+                    await this.performAdvancedSearch();
+                    
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            async performAdvancedSearch() {
+                const query = document.getElementById('advancedSearchInput').value.trim();
+                const searchType = document.getElementById('searchType').value;
+                const bookFilter = document.getElementById('searchBook').value;
+                const themeFilter = document.getElementById('searchTheme').value;
+                
+                if (!query) return;
+                
+                this.showLoading(true);
+                
+                try {
+                    // Simulate search (in production, this would be a real search)
+                    const results = this.simulateSearch(query, searchType, bookFilter, themeFilter);
+                    
+                    // Render results
+                    this.renderSearchResults(results);
+                    
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            simulateSearch(query, searchType, bookFilter, themeFilter) {
+                const results = [];
+                const queryLower = query.toLowerCase();
+                
+                // Search verses
+                if (searchType === 'all' || searchType === 'verses') {
+                    Object.values(this.data.verses).forEach(verse => {
+                        if (bookFilter && verse.book !== bookFilter) return;
+                        
+                        if (verse.text.toLowerCase().includes(queryLower) ||
+                            verse.keywords?.some(kw => kw.toLowerCase().includes(queryLower))) {
+                            
+                            results.push({
+                                type: 'verse',
+                                data: verse,
+                                relevance: this.calculateRelevance(verse.text, query)
+                            });
+                        }
+                    });
+                }
+                
+                // Search notes
+                if (searchType === 'all' || searchType === 'notes') {
+                    Object.values(this.data.notes).forEach(note => {
+                        if (note.text.toLowerCase().includes(queryLower) ||
+                            note.themes?.some(theme => theme.toLowerCase().includes(queryLower))) {
+                            
+                            if (themeFilter) {
+                                const theme = SCOFIELD_THEMES.find(t => t.id === themeFilter);
+                                if (!note.themes?.includes(theme.name.toLowerCase())) return;
+                            }
+                            
+                            results.push({
+                                type: 'note',
+                                data: note,
+                                relevance: this.calculateRelevance(note.text, query)
+                            });
+                        }
+                    });
+                }
+                
+                // Search themes
+                if (searchType === 'all' || searchType === 'themes') {
+                    SCOFIELD_THEMES.forEach(theme => {
+                        if (theme.name.toLowerCase().includes(queryLower)) {
+                            if (themeFilter && theme.id !== themeFilter) return;
+                            
+                            results.push({
+                                type: 'theme',
+                                data: theme,
+                                relevance: 1.0
+                            });
+                        }
+                    });
+                }
+                
+                // Sort by relevance
+                results.sort((a, b) => b.relevance - a.relevance);
+                
+                return results;
+            }
+
+            calculateRelevance(text, query) {
+                // Simple relevance calculation
+                const textLower = text.toLowerCase();
+                const queryLower = query.toLowerCase();
+                
+                let score = 0;
+                if (textLower.includes(queryLower)) score += 0.5;
+                
+                // Bonus for exact matches at word boundaries
+                const words = queryLower.split(' ');
+                words.forEach(word => {
+                    if (textLower.includes(word)) score += 0.2;
+                    if (textLower.includes(` ${word} `)) score += 0.3;
+                });
+                
+                return Math.min(score, 1.0);
+            }
+
+            renderSearchResults(results) {
+                const container = document.getElementById('searchResultsContainer');
+                
+                if (results.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                            <h4 class="mt-3">No Results Found</h4>
+                            <p>Try different search terms or adjust your filters.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = `
+                    <div class="mb-3">
+                        <p>Found ${results.length} results</p>
+                    </div>
+                    <div class="row g-3">
+                `;
+                
+                results.forEach(result => {
+                    const icon = result.type === 'verse' ? 'bi-book' :
+                                 result.type === 'note' ? 'bi-sticky' : 'bi-diagram-3';
+                    
+                    const badgeColor = result.type === 'verse' ? 'primary' :
+                                      result.type === 'note' ? 'success' : 'warning';
+                    
+                    html += `
+                        <div class="col-lg-6">
+                            <div class="search-result">
+                                <div class="d-flex align-items-start mb-2">
+                                    <i class="bi ${icon} me-2 fs-4 text-${badgeColor}"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="mb-1">
+                                                ${this.getResultTitle(result)}
+                                            </h6>
+                                            <span class="badge bg-${badgeColor}">${result.type}</span>
+                                        </div>
+                                        <div class="small text-muted mb-2">
+                                            Relevance: ${(result.relevance * 100).toFixed(0)}%
+                                        </div>
+                                        <p class="mb-1">
+                                            ${this.getResultPreview(result)}
+                                        </p>
+                                        <div class="mt-2">
+                                            ${this.getResultActions(result)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            getResultTitle(result) {
+                switch (result.type) {
+                    case 'verse':
+                        return `${result.data.book} ${result.data.chapter}:${result.data.verse}`;
+                    case 'note':
+                        return `Note on ${result.data.linkedVerses?.[0] || 'Unknown'}`;
+                    case 'theme':
+                        return result.data.name;
+                    default:
+                        return 'Result';
+                }
+            }
+
+            getResultPreview(result) {
+                const text = result.type === 'verse' ? result.data.text :
+                            result.type === 'note' ? result.data.text :
+                            result.data.description || '';
+                
+                // Highlight search terms
+                const query = document.getElementById('advancedSearchInput').value.toLowerCase();
+                let preview = text.substring(0, 150);
+                
+                if (text.length > 150) preview += '...';
+                
+                // Simple highlighting
+                const words = query.split(' ');
+                words.forEach(word => {
+                    if (word.length > 2) {
+                        const regex = new RegExp(`(${word})`, 'gi');
+                        preview = preview.replace(regex, '<mark>$1</mark>');
+                    }
+                });
+                
+                return preview;
+            }
+
+            getResultActions(result) {
+                switch (result.type) {
+                    case 'verse':
+                        return `
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="app.loadChapter('${result.data.book}', ${result.data.chapter})">
+                                <i class="bi bi-book"></i> Go to Chapter
+                            </button>
+                        `;
+                    case 'note':
+                        return `
+                            <button class="btn btn-sm btn-outline-success" 
+                                    onclick="app.showNote('${result.data.id}')">
+                                <i class="bi bi-sticky"></i> View Note
+                            </button>
+                        `;
+                    case 'theme':
+                        return `
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    onclick="app.showTheme('${result.data.id}')">
+                                <i class="bi bi-diagram-3"></i> Explore Theme
+                            </button>
+                        `;
+                    default:
+                        return '';
+                }
+            }
+
+            showNote(noteId) {
+                const note = this.data.notes[noteId];
+                if (!note) return;
+                
+                // Create modal to show note details
+                const modalHtml = `
+                    <div class="modal fade" id="noteModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Scofield Note</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <span class="badge bg-secondary">${note.category}</span>
+                                        <span class="badge bg-info ms-2">${note.type}</span>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <h6>Note Text:</h6>
+                                        <div class="p-3 bg-light rounded">
+                                            ${note.text}
+                                        </div>
+                                    </div>
+                                    
+                                    ${note.linkedVerses && note.linkedVerses.length > 0 ? `
+                                        <div class="mb-3">
+                                            <h6>Related Verses:</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                ${note.linkedVerses.map(verseId => `
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                            onclick="app.goToVerse('${verseId}'); bootstrap.Modal.getInstance(document.getElementById('noteModal')).hide();">
+                                                        ${verseId}
+                                                    </button>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${note.themes && note.themes.length > 0 ? `
+                                        <div class="mb-3">
+                                            <h6>Themes:</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                ${note.themes.map(theme => `
+                                                    <span class="badge" style="background: ${this.getThemeColor(theme)}">
+                                                        ${theme}
+                                                    </span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${note.crossReferences && note.crossReferences.length > 0 ? `
+                                        <div>
+                                            <h6>Cross References:</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                ${note.crossReferences.map(ref => `
+                                                    <button class="btn btn-sm btn-outline-secondary"
+                                                            onclick="app.goToVerse('${ref}'); bootstrap.Modal.getInstance(document.getElementById('noteModal')).hide();">
+                                                        ${ref}
+                                                    </button>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add modal to DOM and show it
+                const modalContainer = document.createElement('div');
+                modalContainer.innerHTML = modalHtml;
+                document.body.appendChild(modalContainer);
+                
+                const modal = new bootstrap.Modal(document.getElementById('noteModal'));
+                modal.show();
+                
+                // Clean up after modal is hidden
+                document.getElementById('noteModal').addEventListener('hidden.bs.modal', () => {
+                    modalContainer.remove();
+                });
+            }
+
+            goToVerse(verseId) {
+                const [book, chapter, verse] = verseId.split('.');
+                if (book && chapter) {
+                    this.loadChapter(book, parseInt(chapter));
+                    
+                    // Scroll to specific verse after a short delay
+                    setTimeout(() => {
+                        const verseElement = document.getElementById(`verse-${verseId}`);
+                        if (verseElement) {
+                            verseElement.scrollIntoView({ behavior: 'smooth' });
+                            this.selectVerse(verseId);
+                        }
+                    }, 500);
+                }
+            }
+
+            getThemeColor(themeName) {
+                const theme = SCOFIELD_THEMES.find(t => 
+                    t.name.toLowerCase() === themeName.toLowerCase() ||
+                    t.id === themeName
+                );
+                return theme?.color || '#6c757d';
+            }
+
+            navigateChapter(direction) {
+                if (!this.currentBook || !this.currentChapter) return;
+                
+                const bookInfo = BIBLE_BOOKS[this.currentBook];
+                const newChapter = this.currentChapter + direction;
+                
+                if (newChapter >= 1 && newChapter <= bookInfo.chapters) {
+                    this.loadChapter(this.currentBook, newChapter);
+                }
+            }
+
+            switchTheme(theme) {
+                // Switch to a specific study theme
+                console.log('Switching to theme:', theme);
+                // Implementation would depend on your theme data structure
+            }
+
+            setColorTheme(theme) {
+                // Set CSS color theme
+                document.body.setAttribute('data-theme', theme);
+                localStorage.setItem('colorTheme', theme);
+            }
+
+            updateStats() {
+                const stats = this.data.statistics || {
+                    totalVerses: 31102,
+                    totalNotes: 4567,
+                    totalCrossReferences: 12890,
+                    totalThemes: 42
+                };
+                
+                document.getElementById('statsContent').innerHTML = `
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="fw-bold">${stats.totalVerses.toLocaleString()}</div>
+                                <small class="text-muted">Verses</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="fw-bold">${stats.totalNotes.toLocaleString()}</div>
+                                <small class="text-muted">Notes</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="fw-bold">${stats.totalCrossReferences.toLocaleString()}</div>
+                                <small class="text-muted">References</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="fw-bold">${stats.totalThemes}</div>
+                                <small class="text-muted">Themes</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateOfflineStatus() {
+                const statusBtn = document.getElementById('offlineStatus');
+                if (navigator.onLine) {
+                    statusBtn.innerHTML = '<i class="bi bi-wifi"></i>';
+                    statusBtn.className = 'btn btn-outline-light ms-2';
+                } else {
+                    statusBtn.innerHTML = '<i class="bi bi-wifi-off"></i>';
+                    statusBtn.className = 'btn btn-outline-warning ms-2';
+                }
+            }
+
+            showLoading(show) {
+                document.getElementById('loadingSpinner').classList.toggle('show', show);
+            }
+
+            showError(message) {
+                // Create error toast
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-danger border-0 position-fixed bottom-0 end-0 m-3';
+                toast.setAttribute('role', 'alert');
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-exclamation-triangle me-2"></i>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                });
+            }
+
+            showWelcomeMessage() {
+                const modalHtml = `
+                    <div class="modal fade" id="welcomeModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Welcome to the Connected Scofield Bible</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Explore the 1917 Scofield Reference Bible with enhanced features:</p>
+                                    <ul>
+                                        <li>Interactive Bible reader with Scofield notes</li>
+                                        <li>Thematic study tools</li>
+                                        <li>Cross-reference explorer</li>
+                                        <li>Advanced search capabilities</li>
+                                        <li>Offline access (PWA)</li>
+                                    </ul>
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        This is a demonstration version. The full 1917 Scofield Bible data will be added in future updates.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Get Started</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const modalContainer = document.createElement('div');
+                modalContainer.innerHTML = modalHtml;
+                document.body.appendChild(modalContainer);
+                
+                const modal = new bootstrap.Modal(document.getElementById('welcomeModal'));
+                modal.show();
+                
+                document.getElementById('welcomeModal').addEventListener('hidden.bs.modal', () => {
+                    modalContainer.remove();
+                });
+            }
+
+            showInstallPrompt() {
+                if (this.deferredPrompt) {
+                    const modal = new bootstrap.Modal(document.getElementById('installModal'));
+                    modal.show();
+                }
+            }
+
+            installApp() {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    this.deferredPrompt.userChoice.then(choice => {
+                        if (choice.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        }
+                        this.deferredPrompt = null;
+                    });
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('installModal')).hide();
+            }
+
+            saveRecentReading(book, chapter) {
+                const recent = JSON.parse(localStorage.getItem('scofield_recent') || '[]');
+                
+                // Add new reading
+                recent.unshift({
+                    book,
+                    chapter,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Keep only last 10
+                if (recent.length > 10) recent.pop();
+                
+                localStorage.setItem('scofield_recent', JSON.stringify(recent));
+            }
+
+            loadLocalData() {
+                try {
+                    const data = localStorage.getItem('scofield_data');
+                    return data ? JSON.parse(data) : {};
+                } catch {
+                    return {};
+                }
+            }
+
+            saveLocalData() {
+                localStorage.setItem('scofield_data', JSON.stringify(this.data));
+            }
+
+            checkForUpdates() {
+                // Check for updates periodically
+                setInterval(async () => {
+                    if (navigator.onLine) {
+                        try {
+                            const response = await fetch('/scofield-bible-project/version.json');
+                            const versionInfo = await response.json();
+                            
+                            const currentVersion = localStorage.getItem('scofield_version');
+                            if (currentVersion !== versionInfo.version) {
+                                this.showUpdateAvailable(versionInfo);
+                            }
+                        } catch (error) {
+                            // Silently fail
+                        }
+                    }
+                }, 3600000); // Check every hour
+            }
+
+            showUpdateAvailable(versionInfo) {
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-primary border-0 position-fixed bottom-0 end-0 m-3';
+                toast.setAttribute('role', 'alert');
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-cloud-arrow-down me-2"></i>
+                            Update available (v${versionInfo.version})
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+            }
+
+            onViewChange() {
+                // Handle view changes
+                console.log('Switched to view:', this.currentView);
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new ScofieldBibleApp();
+            
+            // Load color theme preference
+            const savedTheme = localStorage.getItem('colorTheme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+            
+            // Update offline status
+            window.app.updateOfflineStatus();
+        });
+    </script>
+</body>
+</html>
