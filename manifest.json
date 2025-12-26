@@ -1,0 +1,71 @@
+{
+    "name": "Connected Scofield Bible",
+    "short_name": "Scofield Bible",
+    "description": "Interactive 1917 Scofield Reference Bible with notes and study tools",
+    "start_url": "/scofield-bible-project/",
+    "display": "standalone",
+    "background_color": "#f8f9fa",
+    "theme_color": "#2c3e50",
+    "icons": [
+        {
+            "src": "/scofield-bible-project/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "/scofield-bible-project/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "orientation": "portrait",
+    "categories": ["books", "education", "lifestyle"],
+    "shortcuts": [
+        {
+            "name": "Continue Reading",
+            "url": "/scofield-bible-project/#reader",
+            "description": "Continue reading from last position"
+        },
+        {
+            "name": "Search",
+            "url": "/scofield-bible-project/#search",
+            "description": "Search verses and notes"
+        },
+        {
+            "name": "Themes",
+            "url": "/scofield-bible-project/#themes",
+            "description": "Browse theological themes"
+        }
+    ]
+}
