@@ -1,0 +1,47 @@
+{
+    "version": "1917 Scofield Reference Bible Demo",
+    "lastUpdated": "2024-01-01",
+    "verses": {
+        "GEN.1.1": {
+            "book": "GEN",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning God created the heaven and the earth.",
+            "noteIds": ["N001"],
+            "keywords": ["creation", "beginning", "God"]
+        },
+        "GEN.1.2": {
+            "book": "GEN",
+            "chapter": 1,
+            "verse": 2,
+            "text": "And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
+            "noteIds": ["N002"],
+            "keywords": ["earth", "Spirit", "creation"]
+        },
+        "JOH.1.1": {
+            "book": "JOH",
+            "chapter": 1,
+            "verse": 1,
+            "text": "In the beginning was the Word, and the Word was with God, and the Word was God.",
+            "noteIds": ["N101"],
+            "keywords": ["Word", "beginning", "God"]
+        }
+    },
+    "notes": {
+        "N001": {
+            "id": "N001",
+            "text": "The first creative act refers to the dateless past, and gives scope for all the geologic ages.",
+            "linkedVerses": ["GEN.1.1"],
+            "category": "Doctrinal",
+            "type": "explanatory",
+            "themes": ["creation", "dispensations"],
+            "crossReferences": ["JOH.1.1", "HEB.11.3"]
+        }
+    },
+    "statistics": {
+        "totalVerses": 31102,
+        "totalNotes": 4567,
+        "totalCrossReferences": 12890,
+        "totalThemes": 42
+    }
+}
