@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "releaseDate": "2024-01-01",
+    "changelog": [
+        "Initial release with PWA support",
+        "Interactive reader with notes",
+        "Thematic study tools",
+        "Advanced search functionality",
+        "Offline capabilities"
+    ]
+}
